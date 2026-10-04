@@ -63,6 +63,28 @@
       </tbody>
     </table>
 
+    <section class="panel">
+      <h3 class="panel-title">检查站宣传提醒（覆盖归档台同步）</h3>
+      <table class="data-table compact">
+        <thead>
+          <tr><th>检查站</th><th>覆盖村组</th><th>来源活动</th><th>宣传状态</th><th>提醒内容</th><th>更新时间</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="tip in tips" :key="tip.id">
+            <td>{{ tip.checkpointCode }} {{ tip.site }}</td>
+            <td>{{ tip.village }}</td>
+            <td>{{ tip.campaignCode }}</td>
+            <td>{{ tip.publicityStatus }}</td>
+            <td>{{ tip.reminder }}</td>
+            <td>{{ tip.updatedAt }}</td>
+          </tr>
+          <tr v-if="!tips.length">
+            <td colspan="6" class="empty-state">尚无检查站宣传提醒，归档防火宣传活动后自动同步</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <footer class="page-foot">
       <span>共 {{ total }} 条防火检查站记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
@@ -79,7 +101,8 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
-import type { EntryRow } from '@/data/types'
+import { checkpointTips } from '@/api/coverage-service'
+import type { CheckpointTipRow, EntryRow } from '@/data/types'
 
 const meta = moduleMeta('checkpoint')
 const columns = ["站点编号", "站点位置", "值守人员", "检查项目", "通行车辆数", "收缴火种数", "值班日期", "运行状态"]
@@ -89,6 +112,7 @@ const stats = [{"label": "站点总数", "value": 0}, {"label": "正常检查数
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
+const tips = ref<CheckpointTipRow[]>([])
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
@@ -128,6 +152,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    tips.value = checkpointTips()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '防火检查站列表读取失败'
   }

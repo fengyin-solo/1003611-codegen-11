@@ -63,6 +63,28 @@
       </tbody>
     </table>
 
+    <section class="panel">
+      <h3 class="panel-title">林区道路沿线宣传提示清单（覆盖归档台同步）</h3>
+      <table class="data-table compact">
+        <thead>
+          <tr><th>道路</th><th>覆盖村组</th><th>来源活动</th><th>宣传状态</th><th>沿线提示</th><th>更新时间</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="tip in tips" :key="tip.id">
+            <td>{{ tip.roadCode }} {{ tip.roadName }}</td>
+            <td>{{ tip.village }}</td>
+            <td>{{ tip.campaignCode }}</td>
+            <td>{{ tip.publicityStatus }}</td>
+            <td>{{ tip.tip }}</td>
+            <td>{{ tip.updatedAt }}</td>
+          </tr>
+          <tr v-if="!tips.length">
+            <td colspan="6" class="empty-state">尚无沿线路段的宣传提示，归档防火宣传活动后自动同步</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <footer class="page-foot">
       <span>共 {{ total }} 条林区道路记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
@@ -79,7 +101,8 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
-import type { EntryRow } from '@/data/types'
+import { roadTips } from '@/api/coverage-service'
+import type { EntryRow, RoadTipRow } from '@/data/types'
 
 const meta = moduleMeta('forestroad')
 const columns = ["道路编号", "道路名称", "起点位置", "终点位置", "道路等级", "通行宽度", "最近巡检日", "通行状态"]
@@ -89,6 +112,7 @@ const stats = [{"label": "道路总里程", "value": 0}, {"label": "需维护段
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
+const tips = ref<RoadTipRow[]>([])
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
@@ -128,6 +152,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    tips.value = roadTips()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '林区道路列表读取失败'
   }

@@ -1,4 +1,5 @@
 import { SEED_ROWS } from './seed'
+import { getKV } from './kv'
 import type { EntryRow } from './types'
 
 // 本地持久化：数据放在 localStorage 里，刷新、关掉再打开都还在。
@@ -10,19 +11,20 @@ function clone<T>(value: T): T {
 
 function readStorage(): Record<string, EntryRow[]> {
   const fallback = clone(SEED_ROWS)
-  if (typeof window === 'undefined' || !window.localStorage) {
+  const kv = getKV()
+  if (!kv) {
     return fallback
   }
-  const raw = window.localStorage.getItem(STORAGE_KEY)
+  const raw = kv.getItem(STORAGE_KEY)
   if (!raw) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fallback))
+    kv.setItem(STORAGE_KEY, JSON.stringify(fallback))
     return fallback
   }
   try {
     const parsed = JSON.parse(raw) as Record<string, EntryRow[]>
     return { ...fallback, ...parsed }
   } catch {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fallback))
+    kv.setItem(STORAGE_KEY, JSON.stringify(fallback))
     return fallback
   }
 }
@@ -43,8 +45,9 @@ export function listRows(key: string): EntryRow[] {
 export function saveRows(key: string, rows: EntryRow[]): void {
   const next = { ...allRows(), [key]: rows }
   cache = next
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  const kv = getKV()
+  if (kv) {
+    kv.setItem(STORAGE_KEY, JSON.stringify(next))
   }
 }
 
@@ -56,4 +59,18 @@ export function resetRows(key: string): EntryRow[] {
 
 export function storageKey(): string {
   return STORAGE_KEY
+}
+
+/** 归档事务专用：一次性提交多模块的完整数据。 */
+export function commitEntries(next: Record<string, EntryRow[]>): void {
+  cache = next
+  const kv = getKV()
+  if (kv) {
+    kv.setItem(STORAGE_KEY, JSON.stringify(next))
+  }
+}
+
+/** 仅供测试：配合替换 KV 适配器重置内存缓存。 */
+export function __resetEntriesCache(): void {
+  cache = null
 }

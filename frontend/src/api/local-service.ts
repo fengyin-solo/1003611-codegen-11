@@ -1,5 +1,6 @@
 import { MODULE_BY_KEY } from '@/data/modules'
 import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
+import { applyCampaignAction } from '@/data/coverage-archive'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
 
 // 会写进数据的「往回走」动作：命中就把这条记录标成异常态，看板上能一眼看出来。
@@ -43,6 +44,15 @@ export function runAction(key: string, id: number, action: string): ActionResult
   if (current === target) {
     return { ok: false, message: `${meta.entity}已经是「${target}」，不用重复操作` }
   }
+  // 防火宣传沿「宣传 -> 道路沿线提示 -> 检查站提醒」数据流：状态与两份提示同事务更新。
+  if (key === 'campaign') {
+    try {
+      applyCampaignAction(id, action, target, meta.statuses)
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : '宣传状态同步失败，已整体回退' }
+    }
+    return { ok: true, message: `${meta.entity}已${action}，当前状态「${target}」，道路与检查站提示已同步` }
+  }
   const lastStatus = meta.statuses[meta.statuses.length - 1]
   const updated: EntryRow = {
     ...rows[index],
@@ -73,6 +83,11 @@ export function exportEntries(key: string): { filename: string; content: string 
 
 export function downloadEntries(key: string): void {
   const { filename, content } = exportEntries(key)
+  downloadText(filename, content)
+}
+
+/** 通用文本下载：归档台的报告 CSV 也走这里。 */
+export function downloadText(filename: string, content: string): void {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')

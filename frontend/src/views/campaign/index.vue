@@ -6,7 +6,7 @@
         <p class="page-desc">维护防火宣传活动，围绕活动编号、宣传主题、宣传方式、覆盖村组做登记、筛选与状态流转。</p>
       </div>
       <div class="page-actions">
-        <button class="btn primary" type="button" @click="openCreate">登记防火宣传活动</button>
+        <RouterLink class="btn primary" to="/coverage">前往覆盖归档台</RouterLink>
         <button class="btn" type="button" @click="exportRows">导出防火宣传清单</button>
       </div>
     </header>
@@ -44,7 +44,10 @@
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
           <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
-          <td>{{ row.status }}</td>
+          <td>
+            {{ row.status }}
+            <span v-if="archivedIds.has(Number(row.id))" class="badge">已归档</span>
+          </td>
           <td class="row-actions">
             <button
               v-for="action in actions"
@@ -79,6 +82,7 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { coverageSnapshot } from '@/api/coverage-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('campaign')
@@ -89,6 +93,7 @@ const stats = [{"label": "本月活动数", "value": 0}, {"label": "已完成数
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
+const archivedIds = ref<Set<number>>(new Set())
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
@@ -108,10 +113,6 @@ function exportRows() {
   downloadEntries(meta.key)
 }
 
-function openCreate() {
-  errorMessage.value = '防火宣传活动登记入口尚未接入审批流'
-}
-
 function runAction(action: string, row: EntryRow) {
   errorMessage.value = ''
   const result = applyAction(meta.key, Number(row.id), action)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    archivedIds.value = new Set(coverageSnapshot().archivedCampaignIds)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '防火宣传列表读取失败'
   }

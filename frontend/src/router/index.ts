@@ -11,6 +11,7 @@ const Weather = () => import('@/views/weather/index.vue')
 const Firereport = () => import('@/views/firereport/index.vue')
 const Drone = () => import('@/views/drone/index.vue')
 const Campaign = () => import('@/views/campaign/index.vue')
+const Coverage = () => import('@/views/coverage/index.vue')
 const Checkpoint = () => import('@/views/checkpoint/index.vue')
 const Duty = () => import('@/views/duty/index.vue')
 const Supply = () => import('@/views/supply/index.vue')
@@ -34,6 +35,7 @@ const router = createRouter({
     { path: '/firereport', name: 'firereport', component: Firereport },
     { path: '/drone', name: 'drone', component: Drone },
     { path: '/campaign', name: 'campaign', component: Campaign },
+    { path: '/coverage', name: 'coverage', component: Coverage },
     { path: '/checkpoint', name: 'checkpoint', component: Checkpoint },
     { path: '/duty', name: 'duty', component: Duty },
     { path: '/supply', name: 'supply', component: Supply },
