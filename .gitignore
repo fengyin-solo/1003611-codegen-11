@@ -85,3 +85,6 @@ desktop.ini
 *.db
 *.pid
 *.seed
+
+# ===== 覆盖归档测试编译产物 =====
+frontend/.test-build/

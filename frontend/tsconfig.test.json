@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false,
+    "outDir": ".test-build",
+    "rootDir": "."
+  },
+  "include": ["scripts/**/*.ts", "src/data/coverage-core.ts", "src/data/types.ts"]
+}

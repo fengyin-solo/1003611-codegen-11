@@ -3,10 +3,10 @@
     <header class="page-head">
       <div>
         <h2>防火宣传管理</h2>
-        <p class="page-desc">维护防火宣传活动，围绕活动编号、宣传主题、宣传方式、覆盖村组做登记、筛选与状态流转。</p>
+        <p class="page-desc">维护防火宣传活动，围绕活动编号、宣传主题、宣传方式、覆盖村组做登记、筛选与状态流转；活动完成后可到覆盖归档台导入村组名单并归档。</p>
       </div>
       <div class="page-actions">
-        <button class="btn primary" type="button" @click="openCreate">登记防火宣传活动</button>
+        <RouterLink class="btn primary" to="/coverage-archive">前往覆盖归档台</RouterLink>
         <button class="btn" type="button" @click="exportRows">导出防火宣传清单</button>
       </div>
     </header>
@@ -44,7 +44,10 @@
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
           <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
-          <td>{{ row.status }}</td>
+          <td>
+            {{ row.status }}
+            <span v-if="String(row.status) === '已归档'" class="tag tag-done">已归档</span>
+          </td>
           <td class="row-actions">
             <button
               v-for="action in actions"
@@ -79,13 +82,13 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { syncNoticeStatuses } from '@/api/coverage-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('campaign')
 const columns = ["活动编号", "宣传主题", "宣传方式", "覆盖村组", "执行人员", "活动日期", "受众人数", "活动状态"]
 const actions = ["开展活动", "确认完成", "取消活动"]
-const statuses = ["待开展", "进行中", "已完成", "已取消"]
-const stats = [{"label": "本月活动数", "value": 0}, {"label": "已完成数", "value": 0}, {"label": "覆盖人次", "value": 0}]
+const statuses = ["待开展", "进行中", "已完成", "已取消", "已归档"]
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -98,6 +101,21 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+const stats = computed(() => {
+  const monthPrefix = new Date().toISOString().slice(0, 7)
+  const finished = rows.value.filter((row) =>
+    ['已完成', '已归档'].includes(String(row.status)),
+  )
+  const audience = rows.value.reduce((sum, row) => {
+    const value = Number(row['受众人数'])
+    return Number.isFinite(value) ? sum + value : sum
+  }, 0)
+  return [
+    { label: '本月活动数', value: rows.value.filter((row) => String(row['活动日期'] ?? '').startsWith(monthPrefix)).length },
+    { label: '已完成数', value: finished.length },
+    { label: '覆盖人次', value: audience },
+  ]
+})
 
 function resetFilters() {
   filters.value = {}
@@ -108,10 +126,6 @@ function exportRows() {
   downloadEntries(meta.key)
 }
 
-function openCreate() {
-  errorMessage.value = '防火宣传活动登记入口尚未接入审批流'
-}
-
 function runAction(action: string, row: EntryRow) {
   errorMessage.value = ''
   const result = applyAction(meta.key, Number(row.id), action)
@@ -119,6 +133,8 @@ function runAction(action: string, row: EntryRow) {
     errorMessage.value = result.message
     return
   }
+  // 宣传状态沿既有数据流同步：道路沿线提示与检查站提醒上的宣传状态一并对账。
+  syncNoticeStatuses()
   reload()
 }
 

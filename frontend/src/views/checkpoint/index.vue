@@ -67,6 +67,39 @@
       <span>共 {{ total }} 条防火检查站记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
+
+    <section class="panel notice-panel">
+      <h3 class="panel-title">检查站宣传提醒清单（由覆盖归档台同步）</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>站点编号</th>
+            <th>站点位置</th>
+            <th>覆盖村组</th>
+            <th>来源活动</th>
+            <th>宣传状态</th>
+            <th>提醒日期</th>
+            <th>提醒内容</th>
+            <th>同步状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="notice in notices" :key="notice.id">
+            <td>{{ notice.站点编号 }}</td>
+            <td>{{ notice.站点位置 }}</td>
+            <td>{{ notice.覆盖村组 }}</td>
+            <td>{{ notice.活动编号 }}</td>
+            <td>{{ notice.宣传活动状态 }}</td>
+            <td>{{ notice.提醒日期 }}</td>
+            <td>{{ notice.提醒内容 }}</td>
+            <td>{{ notice.状态 }}</td>
+          </tr>
+          <tr v-if="!notices.length">
+            <td colspan="8" class="empty-state">暂无检查站宣传提醒，归档覆盖周边村组的宣传活动后会自动同步到这里</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
   </section>
 </template>
 
@@ -79,7 +112,9 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { listCheckpointNotices } from '@/api/coverage-service'
 import type { EntryRow } from '@/data/types'
+import type { CheckpointNotice } from '@/data/coverage-core'
 
 const meta = moduleMeta('checkpoint')
 const columns = ["站点编号", "站点位置", "值守人员", "检查项目", "通行车辆数", "收缴火种数", "值班日期", "运行状态"]
@@ -90,6 +125,7 @@ const stats = [{"label": "站点总数", "value": 0}, {"label": "正常检查数
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
+const notices = ref<CheckpointNotice[]>([])
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
@@ -128,6 +164,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    notices.value = listCheckpointNotices()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '防火检查站列表读取失败'
   }

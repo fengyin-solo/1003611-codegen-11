@@ -67,6 +67,39 @@
       <span>共 {{ total }} 条林区道路记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
+
+    <section class="panel notice-panel">
+      <h3 class="panel-title">林区道路沿线宣传提示清单（由覆盖归档台同步）</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>道路编号</th>
+            <th>道路名称</th>
+            <th>覆盖村组</th>
+            <th>来源活动</th>
+            <th>宣传状态</th>
+            <th>发布日期</th>
+            <th>提示内容</th>
+            <th>同步状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="notice in notices" :key="notice.id">
+            <td>{{ notice.道路编号 }}</td>
+            <td>{{ notice.道路名称 }}</td>
+            <td>{{ notice.覆盖村组 }}</td>
+            <td>{{ notice.活动编号 }}</td>
+            <td>{{ notice.宣传活动状态 }}</td>
+            <td>{{ notice.发布日期 }}</td>
+            <td>{{ notice.提示内容 }}</td>
+            <td>{{ notice.状态 }}</td>
+          </tr>
+          <tr v-if="!notices.length">
+            <td colspan="8" class="empty-state">暂无沿线宣传提示，归档覆盖沿线村组的宣传活动后会自动同步到这里</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
   </section>
 </template>
 
@@ -79,7 +112,9 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { listRoadNotices } from '@/api/coverage-service'
 import type { EntryRow } from '@/data/types'
+import type { RoadNotice } from '@/data/coverage-core'
 
 const meta = moduleMeta('forestroad')
 const columns = ["道路编号", "道路名称", "起点位置", "终点位置", "道路等级", "通行宽度", "最近巡检日", "通行状态"]
@@ -90,6 +125,7 @@ const stats = [{"label": "道路总里程", "value": 0}, {"label": "需维护段
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
+const notices = ref<RoadNotice[]>([])
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
@@ -128,6 +164,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    notices.value = listRoadNotices()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '林区道路列表读取失败'
   }
